@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 import './App.css';
 
 function Chat() {
-  const socket = io('http://localhost:5000');
+  const socket = io('http://localhost:5000',{  
+    cors: {
+    origin: "http://localhost:5000",
+    credentials: true
+  },transports : ['websocket'] });
   const [text, setText] = useState('');
   const [sts, setSts] = useState(false);
   const [nama, setNama] = useState('');
@@ -14,25 +18,31 @@ function Chat() {
     socket.on('connect', () => {
         console.log('Connected to server');
     });
-    
-    socket.on('data', (data) => { 
-      if(Array.isArray(data)){
-        setRoom(data)
-      }
+
+    socket.on('get data', (data) => { 
+      console.log("loop");
+      setRoom(data);
     });
-    socket.emit('get data');
+    socket.emit('get data')
+
+    socket.on('new data', (data) => { 
+      console.log(data);
+      setRoom(past => [...past, data]);
+    });
 
     return () => {
       socket.off('connect');
-      socket.off('data');
+      socket.off('get data');
+      socket.off('new data');
     };
-  }, [socket, room]);
+  }, []);
 
-  const sendMessage = (message, nama) => {
+  const sendMessage = async(message, nama) => {
     setSts(true)
-    socket.emit('data', {message, nama});
+    await socket.emit('new data', {message, nama});
     setText('')
     setSts(false)
+ 
   }
 
   return (
@@ -51,7 +61,7 @@ function Chat() {
             <tr key={i}>
               <td>{data.nama}</td>
               <td>:</td>
-              <td>{data.chat}</td>
+              <td>{data.message}</td>
               <td style={{fontSize:'11px', textAlign:'right'}}>{data.createdAt}</td>
             </tr>
             )}
